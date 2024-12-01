@@ -1,2 +1,2 @@
 # Project_Igloo
-Jira-Ticket-Information-Organizer
+Personal Jounral App
