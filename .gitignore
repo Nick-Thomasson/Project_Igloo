@@ -1,0 +1,4 @@
+# Ignore Visual Studio specific folders
+.vs/
+x64/
+*.db
