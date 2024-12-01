@@ -7,6 +7,7 @@
 #include <sstream>
 
 // Global data to keep track of users, passwords, and security questions
+//Nick Test!
 struct UserInfo {
     std::string username;
     std::string password;
