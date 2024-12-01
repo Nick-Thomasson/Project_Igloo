@@ -2,8 +2,9 @@
 Personal Jounral App
 
 Currently Used Libraries Installed with VCPKG:
-wxWidgets
-sqlite3
+wxWidgets - GUI
+sqlite3 - Database files
+libpq - SQL hosting (Heroku)
 
 SQL Hosting:
 Heroku
