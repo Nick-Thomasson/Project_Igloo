@@ -3,8 +3,8 @@ Personal Jounral App
 
 Currently Used Libraries Installed with VCPKG:
 wxWidgets - GUI
-sqlite3 - Database files
-libpq - SQL hosting (Heroku)
+sqlite3 - Database files (old local - replaced by libpq & libpqxx)
+libpq -  QL hosting (Heroku)
 libpqxx - heroku-postgresql library
 
 
