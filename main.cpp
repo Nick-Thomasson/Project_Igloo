@@ -3,7 +3,7 @@
 #include <string>
 #include <regex>
 #include <ctime>
-#include <sqlite3.h>
+#include <fstream>
 #include <sstream>
 
 // Global data to keep track of users, passwords, and security questions
@@ -19,75 +19,52 @@ struct UserInfo {
 
 std::vector<UserInfo> users;
 
+const std::string USERS_FILE = "users.txt";
+
 void LoadUsers() {
-    sqlite3* db;
-    if (sqlite3_open("users.db", &db) != SQLITE_OK) {
-        wxMessageBox("Could not open database.", "Error", wxOK | wxICON_ERROR);
+    std::ifstream file(USERS_FILE);
+    if (!file.is_open()) {
+        wxMessageBox("Could not open user data file. A new file will be created on save.", "Info", wxOK | wxICON_INFORMATION);
         return;
     }
 
-    const char* sql = "CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, security_question TEXT, security_answer TEXT, entry_count INTEGER, last_sign_in TEXT);";
-    char* errMsg = nullptr;
-    if (sqlite3_exec(db, sql, nullptr, nullptr, &errMsg) != SQLITE_OK) {
-        wxMessageBox(wxString::Format("Error creating table: %s", errMsg), "Error", wxOK | wxICON_ERROR);
-        sqlite3_free(errMsg);
-        sqlite3_close(db);
-        return;
-    }
+    std::string line;
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::string username, password, securityQuestion, securityAnswer, lastSignIn;
+        int entryCount;
 
-    // Load user data from the database
-    sql = "SELECT username, password, security_question, security_answer, entry_count, last_sign_in FROM users;";
-    sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
-        while (sqlite3_step(stmt) == SQLITE_ROW) {
-            std::string username = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
-            std::string password = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-            std::string securityQuestion = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
-            std::string securityAnswer = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
-            int entryCount = sqlite3_column_int(stmt, 4);
-            std::string lastSignIn = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 5));
+        std::getline(ss, username, ',');
+        std::getline(ss, password, ',');
+        std::getline(ss, securityQuestion, ',');
+        std::getline(ss, securityAnswer, ',');
+        ss >> entryCount;
+        ss.ignore(1, ','); // Skip the comma after the integer
+        std::getline(ss, lastSignIn);
 
+        if (!username.empty()) {
             users.push_back({ username, password, securityQuestion, securityAnswer, entryCount, lastSignIn });
         }
-        sqlite3_finalize(stmt);
     }
-    else {
-        wxMessageBox("Failed to load user data.", "Error", wxOK | wxICON_ERROR);
-    }
-
-    sqlite3_close(db);
+    file.close();
 }
 
 void SaveUsers() {
-    sqlite3* db;
-    if (sqlite3_open("users.db", &db) != SQLITE_OK) {
-        wxMessageBox("Could not open database.", "Error", wxOK | wxICON_ERROR);
+    std::ofstream file(USERS_FILE, std::ios::trunc);
+    if (!file.is_open()) {
+        wxMessageBox("Could not open user data file for saving.", "Error", wxOK | wxICON_ERROR);
         return;
     }
 
-    const char* sql = "REPLACE INTO users (username, password, security_question, security_answer, entry_count, last_sign_in) VALUES (?, ?, ?, ?, ?, ?);";
-    sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) == SQLITE_OK) {
-        for (const auto& user : users) {
-            sqlite3_bind_text(stmt, 1, user.username.c_str(), -1, SQLITE_STATIC);
-            sqlite3_bind_text(stmt, 2, user.password.c_str(), -1, SQLITE_STATIC);
-            sqlite3_bind_text(stmt, 3, user.securityQuestion.c_str(), -1, SQLITE_STATIC);
-            sqlite3_bind_text(stmt, 4, user.securityAnswer.c_str(), -1, SQLITE_STATIC);
-            sqlite3_bind_int(stmt, 5, user.entryCount);
-            sqlite3_bind_text(stmt, 6, user.lastSignIn.c_str(), -1, SQLITE_STATIC);
-
-            if (sqlite3_step(stmt) != SQLITE_DONE) {
-                wxMessageBox("Failed to save user data.", "Error", wxOK | wxICON_ERROR);
-            }
-            sqlite3_reset(stmt);
-        }
-        sqlite3_finalize(stmt);
+    for (const auto& user : users) {
+        file << user.username << ","
+            << user.password << ","
+            << user.securityQuestion << ","
+            << user.securityAnswer << ","
+            << user.entryCount << ","
+            << user.lastSignIn << "\n";
     }
-    else {
-        wxMessageBox("Failed to prepare SQL statement for saving user data.", "Error", wxOK | wxICON_ERROR);
-    }
-
-    sqlite3_close(db);
+    file.close();
 }
 
 std::string GetCurrentDate() {
@@ -239,7 +216,6 @@ void UserFrame::OnLogin(wxCommandEvent& event) {
     }
 }
 
-
 void UserFrame::OnAddUser(wxCommandEvent& event) {
     wxTextEntryDialog usernameDialog(this, "Enter new username:", "Add User");
     if (usernameDialog.ShowModal() == wxID_OK) {
@@ -323,7 +299,6 @@ void UserFrame::OnForgotPassword(wxCommandEvent& event) {
                 wxMessageBox("Incorrect answer to the security question. Please try again.", "Password Recovery Failed", wxOK | wxICON_ERROR);
             }
         }
-        wxMessageBox("If you don't know the answer to your security question, please contact the administrator at nthomasson22@yahoo.com or call 785-248-1839 for further assistance.", "Need Help?", wxOK | wxICON_INFORMATION);
     }
     else {
         wxMessageBox("Please select a user to recover the password.", "Error", wxOK | wxICON_ERROR);
