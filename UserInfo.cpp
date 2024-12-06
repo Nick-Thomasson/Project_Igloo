@@ -9,6 +9,7 @@ string UserInfo::GetPassword() const {
 }
 string UserInfo::GetSecurityQuestion() const {
     return securityQuestion;
+    //
 }
 string UserInfo::GetSecurityAnswer() const {
     return securityAnswer;
