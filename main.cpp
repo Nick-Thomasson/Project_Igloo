@@ -5,43 +5,44 @@
 #include <ctime>
 #include <fstream>
 #include <sstream>
+using namespace std;
 
 // Global data to keep track of users, passwords, and security questions
 // TEST BRANCH
 
 struct UserInfo {
-    std::string username;
-    std::string password;
-    std::string securityQuestion;
-    std::string securityAnswer;
+    string username;
+    string password;
+    string securityQuestion;
+    string securityAnswer;
     int entryCount;
-    std::string lastSignIn;
+    string lastSignIn;
 };
 
-std::vector<UserInfo> users;
+vector<UserInfo> users;
 
-const std::string USERS_FILE = "users.txt";
+const string USERS_FILE = "users.txt";
 
 void LoadUsers() {
-    std::ifstream file(USERS_FILE);
+    ifstream file(USERS_FILE);
     if (!file.is_open()) {
         wxMessageBox("Could not open user data file. A new file will be created on save.", "Info", wxOK | wxICON_INFORMATION);
         return;
     }
 
-    std::string line;
-    while (std::getline(file, line)) {
-        std::stringstream ss(line);
-        std::string username, password, securityQuestion, securityAnswer, lastSignIn;
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        string username, password, securityQuestion, securityAnswer, lastSignIn;
         int entryCount;
 
-        std::getline(ss, username, ',');
-        std::getline(ss, password, ',');
-        std::getline(ss, securityQuestion, ',');
-        std::getline(ss, securityAnswer, ',');
+        getline(ss, username, ',');
+        getline(ss, password, ',');
+        getline(ss, securityQuestion, ',');
+        getline(ss, securityAnswer, ',');
         ss >> entryCount;
         ss.ignore(1, ','); // Skip the comma after the integer
-        std::getline(ss, lastSignIn);
+        getline(ss, lastSignIn);
 
         if (!username.empty()) {
             users.push_back({ username, password, securityQuestion, securityAnswer, entryCount, lastSignIn });
@@ -51,7 +52,7 @@ void LoadUsers() {
 }
 
 void SaveUsers() {
-    std::ofstream file(USERS_FILE, std::ios::trunc);
+    ofstream file(USERS_FILE, ios::trunc);
     if (!file.is_open()) {
         wxMessageBox("Could not open user data file for saving.", "Error", wxOK | wxICON_ERROR);
         return;
@@ -68,12 +69,12 @@ void SaveUsers() {
     file.close();
 }
 
-std::string GetCurrentDate() {
+string GetCurrentDate() {
     time_t now = time(0);
     tm* ltm = localtime(&now);
     char buffer[20];
     strftime(buffer, 20, "%Y-%m-%d", ltm);
-    return std::string(buffer);
+    return string(buffer);
 }
 
 class UserApp : public wxApp {
@@ -223,8 +224,8 @@ void UserFrame::OnAddUser(wxCommandEvent& event) {
         wxString newUser = usernameDialog.GetValue();
 
         // Check if username contains disallowed characters or spaces
-        std::regex usernameRegex("^[a-zA-Z0-9_]+$");
-        if (!std::regex_match(newUser.ToStdString(), usernameRegex)) {
+        regex usernameRegex("^[a-zA-Z0-9_]+$");
+        if (!regex_match(newUser.ToStdString(), usernameRegex)) {
             wxMessageBox("Username cannot contain spaces or special characters.", "Error", wxOK | wxICON_ERROR);
             return;
         }
