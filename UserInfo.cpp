@@ -39,3 +39,20 @@ void UserInfo::SetLastSignIn(const string& newLastSignIn) {
 void UserInfo::SetEntryCount(int newEntryCount) {
     entryCount = newEntryCount;
 }
+
+// Serialization
+string UserInfo::Serialize() const {
+    return username + "," + password + "," + securityQuestion + "," +
+        securityAnswer + "," + to_string(entryCount) + "," + lastSignIn;
+}
+
+void UserInfo::Deserialize(const string& data) {
+    stringstream ss(data);
+    getline(ss, username, ',');
+    getline(ss, password, ',');
+    getline(ss, securityQuestion, ',');
+    getline(ss, securityAnswer, ',');
+    ss >> entryCount;
+    ss.ignore(1, ',');
+    getline(ss, lastSignIn);
+}

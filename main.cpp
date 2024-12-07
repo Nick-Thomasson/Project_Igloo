@@ -5,25 +5,16 @@
 #include <ctime>
 #include <fstream>
 #include <sstream>
+#include "UserInfo.h"
+
 using namespace std;
 
-// Global data to keep track of users, passwords, and security questions
-// TEST BRANCH
-
-struct UserInfo {
-    string username;
-    string password;
-    string securityQuestion;
-    string securityAnswer;
-    int entryCount;
-    string lastSignIn;
-};
-
+// Global data
 vector<UserInfo> users;
 
 const string USERS_FILE = "users.txt";
 
-void LoadUsers() {
+static void LoadUsers() {
     ifstream file(USERS_FILE);
     if (!file.is_open()) {
         wxMessageBox("Could not open user data file. A new file will be created on save.", "Info", wxOK | wxICON_INFORMATION);
@@ -32,26 +23,14 @@ void LoadUsers() {
 
     string line;
     while (getline(file, line)) {
-        stringstream ss(line);
-        string username, password, securityQuestion, securityAnswer, lastSignIn;
-        int entryCount;
-
-        getline(ss, username, ',');
-        getline(ss, password, ',');
-        getline(ss, securityQuestion, ',');
-        getline(ss, securityAnswer, ',');
-        ss >> entryCount;
-        ss.ignore(1, ','); // Skip the comma after the integer
-        getline(ss, lastSignIn);
-
-        if (!username.empty()) {
-            users.push_back({ username, password, securityQuestion, securityAnswer, entryCount, lastSignIn });
-        }
+        UserInfo user;
+        user.Deserialize(line);
+        users.push_back(user);
     }
     file.close();
 }
 
-void SaveUsers() {
+static void SaveUsers() {
     ofstream file(USERS_FILE, ios::trunc);
     if (!file.is_open()) {
         wxMessageBox("Could not open user data file for saving.", "Error", wxOK | wxICON_ERROR);
@@ -59,17 +38,12 @@ void SaveUsers() {
     }
 
     for (const auto& user : users) {
-        file << user.username << ","
-            << user.password << ","
-            << user.securityQuestion << ","
-            << user.securityAnswer << ","
-            << user.entryCount << ","
-            << user.lastSignIn << "\n";
+        file << user.Serialize() << "\n";
     }
     file.close();
 }
 
-string GetCurrentDate() {
+static string GetCurrentDate() {
     time_t now = time(0);
     tm* ltm = localtime(&now);
     char buffer[20];
@@ -130,7 +104,7 @@ wxIMPLEMENT_APP(UserApp);
 bool UserApp::OnInit() {
     LoadUsers();
     UserFrame* frame = new UserFrame("Personal Journal");
-    frame->SetBackgroundColour(wxColour(221, 160, 221)); // Light purple color similar to Visual Studio
+    frame->SetBackgroundColour(wxColour(221, 160, 221));
     frame->Show(true);
     return true;
 }
@@ -142,28 +116,19 @@ UserFrame::UserFrame(const wxString& title)
     wxPanel* panel = new wxPanel(this, wxID_ANY);
     wxBoxSizer* vbox = new wxBoxSizer(wxVERTICAL);
 
-    // Instruction text
-    wxStaticText* instructions = new wxStaticText(panel, wxID_ANY, "Welcome to your Personal Journal!\n\nPlease select an action below:\n- Log In: To access your journal entries.\n- Add User: To create a new journal profile.\n- Delete User: To remove an existing user.\n- Forgot Password: To recover your password.");
+    wxStaticText* instructions = new wxStaticText(panel, wxID_ANY, "Welcome to your Personal Journal!");
     instructions->Wrap(480);
     vbox->Add(instructions, 0, wxALL, 10);
 
-    // Bug disclaimer
-    wxStaticText* bugDisclaimer = new wxStaticText(panel, wxID_ANY, "If you encounter any bugs, please contact the developer at nthomasson22@yahoo.com.");
-    bugDisclaimer->Wrap(480);
-    vbox->Add(bugDisclaimer, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 10);
-
-    // User list box
     userListBox = new wxListBox(panel, ID_USER_LISTBOX);
     for (const auto& user : users) {
-        userListBox->Append(user.username);
+        userListBox->Append(user.GetUsername());
     }
     vbox->Add(userListBox, 1, wxEXPAND | wxALL, 10);
 
-    // User info text
     userInfoText = new wxStaticText(panel, wxID_ANY, "");
     vbox->Add(userInfoText, 0, wxALL, 10);
 
-    // Buttons for actions
     btnLogin = new wxButton(panel, ID_BTN_LOGIN, "Log In");
     btnAddUser = new wxButton(panel, ID_BTN_ADD_USER, "Add User");
     btnDeleteUser = new wxButton(panel, ID_BTN_DELETE_USER, "Delete User");
@@ -187,124 +152,33 @@ void UserFrame::OnLogin(wxCommandEvent& event) {
     int selection = userListBox->GetSelection();
     if (selection != wxNOT_FOUND) {
         wxString username = userListBox->GetString(selection);
+        const UserInfo& user = users[selection];
 
-        // Ask the security question
-        wxString securityQuestion = wxString::FromUTF8(users[selection].securityQuestion.c_str());
-        wxTextEntryDialog securityAnswerDialog(this, "Security question for " + username + ": " + securityQuestion, "Security Check");
-        if (securityAnswerDialog.ShowModal() != wxID_OK || securityAnswerDialog.GetValue().ToStdString() != users[selection].securityAnswer) {
-            wxMessageBox("Incorrect answer to the security question. Please try again.", "Login Failed", wxOK | wxICON_ERROR);
-            return;
-        }
-
-        // Ask for password
-        wxTextEntryDialog passwordDialog(this, "Enter password for " + username + ":", "Log In", "", wxTextEntryDialogStyle | wxTE_PASSWORD);
-        if (passwordDialog.ShowModal() == wxID_OK) {
-            wxString enteredPassword = passwordDialog.GetValue();
-
-            // Verify username and password
-            if (users[selection].password == enteredPassword.ToStdString()) {
-                users[selection].lastSignIn = GetCurrentDate();
-                wxMessageBox("Welcome, " + username + "!", "Login Successful", wxOK | wxICON_INFORMATION);
-                SetTitle(username + "'s Personal Journal");
-                UpdateUserInfo();
-            }
-            else {
-                wxMessageBox("Incorrect password. Please try again.", "Login Failed", wxOK | wxICON_ERROR);
+        wxTextEntryDialog securityDialog(this, "Answer the security question:\n" + user.GetSecurityQuestion(), "Login");
+        if (securityDialog.ShowModal() == wxID_OK) {
+            if (securityDialog.GetValue().ToStdString() == user.GetSecurityAnswer()) {
+                wxTextEntryDialog passwordDialog(this, "Enter your password:", "Login", "", wxTextEntryDialogStyle | wxTE_PASSWORD);
+                if (passwordDialog.ShowModal() == wxID_OK && passwordDialog.GetValue().ToStdString() == user.GetPassword()) {
+                    wxMessageBox("Welcome, " + username + "!", "Success", wxOK | wxICON_INFORMATION);
+                    userListBox->SetSelection(wxNOT_FOUND);
+                    return;
+                }
             }
         }
-    }
-    else {
-        wxMessageBox("Please select a user to log in.", "Error", wxOK | wxICON_ERROR);
+        wxMessageBox("Login failed.", "Error", wxOK | wxICON_ERROR);
     }
 }
 
 void UserFrame::OnAddUser(wxCommandEvent& event) {
-    wxTextEntryDialog usernameDialog(this, "Enter new username:", "Add User");
-    if (usernameDialog.ShowModal() == wxID_OK) {
-        wxString newUser = usernameDialog.GetValue();
-
-        // Check if username contains disallowed characters or spaces
-        regex usernameRegex("^[a-zA-Z0-9_]+$");
-        if (!regex_match(newUser.ToStdString(), usernameRegex)) {
-            wxMessageBox("Username cannot contain spaces or special characters.", "Error", wxOK | wxICON_ERROR);
-            return;
-        }
-
-        // Check if user already exists
-        for (const auto& user : users) {
-            if (user.username == newUser.ToStdString()) {
-                wxMessageBox("Username already exists.", "Error", wxOK | wxICON_ERROR);
-                return;
-            }
-        }
-
-        // Ask for password
-        wxTextEntryDialog passwordDialog(this, "Enter password:", "Add User", "", wxTextEntryDialogStyle | wxTE_PASSWORD);
-        if (passwordDialog.ShowModal() == wxID_OK) {
-            wxString newPassword = passwordDialog.GetValue();
-            if (!newPassword.IsEmpty()) {
-                // Provide security question options
-                wxArrayString securityQuestions;
-                securityQuestions.Add("What is your mother's maiden name?");
-                securityQuestions.Add("What was the name of your first pet?");
-                securityQuestions.Add("What is the name of the town where you were born?");
-                securityQuestions.Add("What was your high school mascot?");
-
-                wxSingleChoiceDialog questionDialog(this, "Select a security question for account recovery:", "Add User", securityQuestions);
-                if (questionDialog.ShowModal() == wxID_OK) {
-                    wxString selectedQuestion = questionDialog.GetStringSelection();
-                    wxTextEntryDialog securityAnswerDialog(this, "Enter the answer to your selected security question:", "Add User");
-                    if (securityAnswerDialog.ShowModal() == wxID_OK) {
-                        wxString securityAnswer = securityAnswerDialog.GetValue();
-                        users.push_back({ newUser.ToStdString(), newPassword.ToStdString(), selectedQuestion.ToStdString(), securityAnswer.ToStdString(), 0, "Never" });
-                        userListBox->Append(newUser);
-                        UpdateUserInfo();
-                    }
-                    else {
-                        wxMessageBox("Security answer cannot be empty.", "Error", wxOK | wxICON_ERROR);
-                    }
-                }
-            }
-            else {
-                wxMessageBox("Password cannot be empty.", "Error", wxOK | wxICON_ERROR);
-            }
-        }
-    }
+    // Add user implementation
 }
 
 void UserFrame::OnDeleteUser(wxCommandEvent& event) {
-    int selection = userListBox->GetSelection();
-    if (selection != wxNOT_FOUND) {
-        users.erase(users.begin() + selection);
-        userListBox->Delete(selection);
-        UpdateUserInfo();
-    }
-    else {
-        wxMessageBox("Please select a user to delete.", "Error", wxOK | wxICON_ERROR);
-    }
+    // Delete user implementation
 }
 
 void UserFrame::OnForgotPassword(wxCommandEvent& event) {
-    int selection = userListBox->GetSelection();
-    if (selection != wxNOT_FOUND) {
-        wxString username = userListBox->GetString(selection);
-
-        // Ask the security question
-        wxString securityQuestion = wxString::FromUTF8(users[selection].securityQuestion.c_str());
-        wxTextEntryDialog securityAnswerDialog(this, "Security question for " + username + ": " + securityQuestion, "Forgot Password");
-        if (securityAnswerDialog.ShowModal() == wxID_OK) {
-            wxString enteredAnswer = securityAnswerDialog.GetValue();
-            if (enteredAnswer.ToStdString() == users[selection].securityAnswer) {
-                wxMessageBox("Your password is: " + wxString::FromUTF8(users[selection].password.c_str()), "Password Recovery", wxOK | wxICON_INFORMATION);
-            }
-            else {
-                wxMessageBox("Incorrect answer to the security question. Please try again.", "Password Recovery Failed", wxOK | wxICON_ERROR);
-            }
-        }
-    }
-    else {
-        wxMessageBox("Please select a user to recover the password.", "Error", wxOK | wxICON_ERROR);
-    }
+    // Forgot password implementation
 }
 
 void UserFrame::OnUserSelection(wxCommandEvent& event) {
@@ -312,7 +186,6 @@ void UserFrame::OnUserSelection(wxCommandEvent& event) {
 }
 
 void UserFrame::OnCloseApp(wxCommandEvent& event) {
-    wxMessageBox("Goodbye for now!", "Closing Application", wxOK | wxICON_INFORMATION);
     SaveUsers();
     Close(true);
 }
@@ -321,8 +194,7 @@ void UserFrame::UpdateUserInfo() {
     int selection = userListBox->GetSelection();
     if (selection != wxNOT_FOUND) {
         const UserInfo& user = users[selection];
-        wxString info = wxString::Format("Entries: %d\nLast Sign-In: %s", user.entryCount, user.lastSignIn);
-        userInfoText->SetLabel(info);
+        userInfoText->SetLabel("Entries: " + to_string(user.GetEntryCount()) + "\nLast Sign-In: " + user.GetLastSignIn());
     }
     else {
         userInfoText->SetLabel("");

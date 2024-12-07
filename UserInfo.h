@@ -2,10 +2,11 @@
 #define USERINFO_H
 
 #include <string>
+#include <sstream>
+
 using namespace std;
 
-class UserInfo
-{
+class UserInfo {
 private:
     string username;
     string password;
@@ -30,6 +31,10 @@ public:
     void SetSecurityAnswer(const string& newSecurityAnswer);
     void SetLastSignIn(const string& newLastSignIn);
     void SetEntryCount(int newEntryCount);
+
+    // Serialization
+    string Serialize() const;
+    void Deserialize(const string& data);
 };
 
 #endif
