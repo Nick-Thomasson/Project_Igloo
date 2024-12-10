@@ -133,11 +133,9 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="UserInfo.cpp" />
-    <ClCompile Include="DatabaseManagement.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UserInfo.h" />
-    <ClInclude Include="DatabaseManagement.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
