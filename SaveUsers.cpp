@@ -7,7 +7,7 @@
 using namespace pqxx;
 using namespace std;
 
-vector<UserInfo> users; // Define the global vector of users
+extern std::vector<UserInfo> users; // Declare the external vector if needed
 
  void SaveUsers() {
     try {
