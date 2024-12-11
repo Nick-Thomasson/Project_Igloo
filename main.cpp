@@ -16,6 +16,7 @@ using namespace std;
 
 // Global data
 vector<UserInfo> users;
+string DataBaseAddress = "dbname=dfqugt45bplafp user=ueid349f444hpc password=p115197e8dec98b7fd9d5e32e93fbe0a6911b95fd5fd837d7614dd97d031cfe75 host=caij57unh724n3.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com port=5432 sslmode=require";
 void LoadUsers();
 void SaveUsers();
 
@@ -181,7 +182,7 @@ void UserFrame::OnAddUser(wxCommandEvent& event) {
 	newUser.SetLastSignIn(""); // Use an empty string or a default value
 
 	try {
-		connection C("dbname=dfqugt45bplafp user=ueid349f444hpc password=p115197e8dec98b7fd9d5e32e93fbe0a6911b95fd5fd837d7614dd97d031cfe75 host=caij57unh724n3.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com port=5432 sslmode=require");
+		connection C(DataBaseAddress);
 
 		if (C.is_open()) {
 			work W(C);
@@ -218,7 +219,7 @@ void UserFrame::OnDeleteUser(wxCommandEvent& event) {
 		int response = wxMessageBox("Are you sure you want to delete the user \"" + username + "\"?", "Confirm Deletion", wxYES_NO | wxICON_WARNING);
 		if (response == wxYES) {
 			try {
-				connection C("dbname=dfqugt45bplafp user=ueid349f444hpc password=p115197e8dec98b7fd9d5e32e93fbe0a6911b95fd5fd837d7614dd97d031cfe75 host=caij57unh724n3.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com port=5432 sslmode=require");
+				connection C(DataBaseAddress);
 
 				if (C.is_open()) {
 					work W(C);
