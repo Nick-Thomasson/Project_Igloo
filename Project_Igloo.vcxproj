@@ -131,10 +131,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="LoadUsers.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="SaveUsers.cpp" />
     <ClCompile Include="UserInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="LoadUsers.h" />
+    <ClInclude Include="SaveUsers.h" />
     <ClInclude Include="UserInfo.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
